@@ -48,26 +48,53 @@
 #include <linux/limits.h>
 
 
+
 static struct {
   char driveA[512];
   char driveB[512];
+  
 } global_context;
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
-  char fullpath[PATH_MAX];
-	int res;
+  char fullpath[2][PATH_MAX];
+  int resa=0;
+  int resb=0;
+ 
+  struct stat stbuf2={0};
+  
 
-  sprintf(fullpath, "%s%s",
-      rand() % 2 == 0 ? global_context.driveA : global_context.driveB, path);
 
-  fprintf(stdout, "getattr: %s\n", fullpath);
+ 
+  sprintf(fullpath[0], "%s%s",global_context.driveA, path);
+  sprintf(fullpath[1], "%s%s",global_context.driveB, path);
 
-	res = lstat(fullpath, stbuf);
-	if (res == -1)
-		return -errno;
+/*
+for (int i = 0; i < 2; ++i) {
+    const char* fullpath = fullpath[i];
+}
+  fprintf(stdout, "getattr: %s\n", *fullpath);
+*/
+  
+
+
+  
+  resa =lstat(fullpath[0],stbuf);
+  resb = lstat(fullpath[1],&stbuf2);
+
+
+    
+  if (resa == -1 || resb ==-1)
+	return -errno;
+
+
+  if(S_ISREG(stbuf->st_mode))
+  {
+    stbuf->st_size += stbuf2.st_size;
+  }
 
 	return 0;
+
 }
 
 static int xmp_access(const char *path, int mask)
@@ -93,7 +120,7 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 	int res;
 
   sprintf(fullpath, "%s%s",
-      rand() % 2 == 0 ? global_context.driveA : global_context.driveB, path);
+      global_context.driveA, path);
 
   fprintf(stdout, "readlink: %s\n", fullpath);
 
@@ -116,9 +143,9 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 	(void) offset;
 	(void) fi;
-
+  
   sprintf(fullpath, "%s%s",
-      rand() % 2 == 0 ? global_context.driveA : global_context.driveB, path);
+      atoi(path) % 2== 0 ? global_context.driveA : global_context.driveB, path);
 
   fprintf(stdout, "readdir: %s\n", fullpath);
 
